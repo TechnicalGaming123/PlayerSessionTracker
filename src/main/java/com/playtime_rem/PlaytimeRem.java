@@ -284,7 +284,7 @@ public class PlaytimeRem {
         }
 
         PlayerSessionsFile data = loadSessions(server, targetUuid, resolvedName);
-        data.sessions.sort(Comparator.comparingLong(s -> s.join));
+        data.sessions.sort(Comparator.comparingLong((SessionEntry s) -> s.join).reversed());
 
         int totalSessions = data.sessions.size();
         int totalPages = (int) Math.ceil(totalSessions / (double) SESSIONS_PER_PAGE);
