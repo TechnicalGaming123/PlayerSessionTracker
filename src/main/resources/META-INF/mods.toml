@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC0-1.0"
+
+[[mods]]
+modId="playersessiontracker"
+version="3.0.1"
+displayName="Player Session Tracker"
+description='''
+This mod tracks and saves playtime of players.
+'''
+authors="SpheralTomato78"
+logoFile="assets/playtimetracker/playersessiontrackerIcon.png"
+
+[[dependencies.playersessiontracker]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.playersessiontracker]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
