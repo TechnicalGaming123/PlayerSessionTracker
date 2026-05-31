@@ -144,7 +144,7 @@ public class PlaytimeRem {
         dispatcher.register(
                 Commands.literal("session")
 
-                        // /playtrack -> same as /playtrack check <self>
+                        // /session -> same as /session check <self>
                         .executes(ctx -> {
                             ServerPlayer self = ctx.getSource().getPlayer();
                             if (self == null) {
@@ -180,7 +180,7 @@ public class PlaytimeRem {
                                 )
                         )
 
-                        // /playtrack checkonline
+                        // /session checkonline
                         .then(Commands.literal("checkonline")
                                 // No argument → show your own live session
                                 .executes(ctx -> executeOnlineCheck(ctx.getSource(), ""))
