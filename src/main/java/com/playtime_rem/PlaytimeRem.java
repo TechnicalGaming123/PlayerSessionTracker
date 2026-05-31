@@ -43,7 +43,7 @@ public class PlaytimeRem {
     private static final ZoneId SERVER_ZONE = ZoneId.of("America/Los_Angeles");
     private static final long SEVEN_DAYS_MILLIS = 7L * 24L * 60L * 60L * 1000L;
     private static final int TICKS_PER_MINUTE = 20 * 60;
-    private static final int SESSIONS_PER_PAGE = 5;
+    private static final int SESSIONS_PER_PAGE = 10;
 
     private int tickCounter = 0;
 
@@ -264,15 +264,17 @@ public class PlaytimeRem {
         String resolvedName = playerNameInput;
 
         if (targetUuid == null) {
+            // Try online players first
             ServerPlayer online = server.getPlayerList().getPlayerByName(playerNameInput);
             if (online != null) {
                 targetUuid = online.getUUID();
                 resolvedName = online.getGameProfile().getName();
-            }
-        } else {
-            ServerPlayer online = server.getPlayerList().getPlayer(targetUuid);
-            if (online != null) {
-                resolvedName = online.getGameProfile().getName();
+            } else {
+                // Try offline session files
+                targetUuid = findUUIDFromSessionFiles(server, playerNameInput);
+                if (targetUuid != null) {
+                    resolvedName = playerNameInput;
+                }
             }
         }
 
@@ -296,7 +298,7 @@ public class PlaytimeRem {
 
         sendToPlayer(source, Component.literal("Play sessions for " + resolvedNameFinal).withStyle(ChatFormatting.GOLD));
         sendToPlayer(source, Component.literal("Page " + pageFinal + "/" + totalPagesFinal).withStyle(ChatFormatting.YELLOW));
-        sendToPlayer(source, Component.literal(String.format("%-3s %-10s %-15s %-12s", "#", "Date", "Duration", "Server Time")).withStyle(ChatFormatting.AQUA));
+        sendToPlayer(source, Component.literal(String.format("%-3s %-10s %-15s %-12s %-12s", "#", "Date", "Duration", "Joined", "Left")).withStyle(ChatFormatting.AQUA));
 
         if (totalSessions == 0) {
             sendToPlayer(source, Component.literal("No sessions recorded in the last 7 days.").withStyle(ChatFormatting.GRAY));
@@ -308,7 +310,20 @@ public class PlaytimeRem {
                 SessionEntry s = data.sessions.get(i);
                 String durationStr = formatDuration(s.durationSeconds);
 
-                String line = String.format("%-3d %-10s %-15s %-12s", (i + 1), s.displayDate, durationStr, s.serverTime);
+                String leftAt = Instant.ofEpochMilli(s.leave)
+                        .atZone(SERVER_ZONE)
+                        .toLocalTime()
+                        .format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)) + " (PT)";
+
+                String line = String.format(
+                        "%-3d %-10s %-15s %-12s %-12s",
+                        (i + 1),
+                        s.displayDate,
+                        durationStr,
+                        s.serverTime,
+                        leftAt
+                );
+
                 sendToPlayer(source, Component.literal(line).withStyle(ChatFormatting.WHITE));
             }
         }
@@ -460,6 +475,27 @@ public class PlaytimeRem {
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
             GSON.toJson(psf, writer);
         } catch (IOException ignored) {}
+    }
+
+    private UUID findUUIDFromSessionFiles(MinecraftServer server, String name) {
+        Path folder = getSessionsFolder(server);
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.json")) {
+            for (Path path : stream) {
+                try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+                    PlayerSessionsFile psf = GSON.fromJson(reader, PlayerSessionsFile.class);
+
+                    if (psf != null && psf.playerName != null &&
+                            psf.playerName.equalsIgnoreCase(name)) {
+
+                        String fileName = path.getFileName().toString();
+                        return UUID.fromString(fileName.substring(0, fileName.length() - 5));
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (IOException ignored) {}
+
+        return null;
     }
 
     // ---------- Utils ----------
